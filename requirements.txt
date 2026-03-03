@@ -1,0 +1,13 @@
+# Env
+python-dotenv>=1.0.0
+
+# Qdrant and embeddings
+qdrant-client>=1.12.0
+sentence-transformers>=3.0.0
+
+# MCP server
+fastmcp>=2.14.0
+
+# HTTP for optional health endpoint (FastMCP SSE/HTTP)
+httpx>=0.27.0
+uvicorn>=0.30.0

@@ -1,0 +1,47 @@
+# Qdrant + MCP-сервер 1C UPP Docs
+# Локально: docker compose up -d → MCP на http://localhost:8000/mcp, Qdrant на :6333
+# В Dokploy: добавьте приложение из этого compose, задайте домен в UI или раскомментируйте labels ниже
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    restart: unless-stopped
+
+  mcp:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+      - COLLECTION_NAME=${COLLECTION_NAME:-1c_upp_docs}
+      - MCP_TRANSPORT=http
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8000
+      - MCP_PATH=/mcp
+      - EMBED_MODEL=${EMBED_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+    depends_on:
+      - qdrant
+    restart: unless-stopped
+    # Раскомментируйте для Dokploy (Traefik): замените your-domain.com на свой домен
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.http.routers.1c-upp-mcp.rule=Host(`mcp.your-domain.com`)"
+    #   - "traefik.http.routers.1c-upp-mcp.entrypoints=websecure"
+    #   - "traefik.http.routers.1c-upp-mcp.tls.certResolver=letsencrypt"
+    #   - "traefik.http.services.1c-upp-mcp.loadbalancer.server.port=8000"
+    # networks:
+    #   - default
+    #   - dokploy-network
+
+# networks:
+#   dokploy-network:
+#     external: true
+
+volumes:
+  qdrant_storage:

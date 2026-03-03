@@ -1,0 +1,15 @@
+.venv
+.env
+*.pyc
+__pycache__
+.git
+.gitignore
+*.md
+!README.md
+docker-compose*.yml
+Dockerfile*
+*.zip
+bsl
+*.bat
+*.ps1
+.cursor
