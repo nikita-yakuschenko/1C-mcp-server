@@ -1,6 +1,7 @@
 # Ingestion: распаковка ZIP, чтение objects.csv и MD, эмбеддинги, загрузка в Qdrant
 import csv
 import logging
+import os
 import zipfile
 from pathlib import Path
 from typing import List, Tuple
@@ -130,6 +131,11 @@ def run_ingestion(zip_path: str) -> Tuple[int, int]:
     return loaded, skipped
 
 
+def _write_ingest_done_marker(loaded: int) -> None:
+    marker = Path(os.environ.get("INGEST_DONE_PATH", "/data/.ingest_done"))
+    marker.write_text(f"{loaded}\n", encoding="utf-8")
+
+
 def main() -> None:
     import sys
     if len(sys.argv) < 2:
@@ -138,6 +144,7 @@ def main() -> None:
     zip_path = sys.argv[1]
     try:
         loaded, skipped = run_ingestion(zip_path)
+        _write_ingest_done_marker(loaded)
         print(f"Готово. Загружено: {loaded}, пропущено: {skipped}")
     except Exception as e:
         logger.exception("%s", e)

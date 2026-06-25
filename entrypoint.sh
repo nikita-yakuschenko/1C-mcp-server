@@ -33,11 +33,20 @@ if not os.path.isfile(zip_path):
     print(f"INGEST_ZIP_PATH={zip_path} — файл не найден, ingestion пропущен", file=sys.stderr)
     sys.exit(0)
 
-from qdrant_ops import collection_exists
+from qdrant_ops import collection_has_data
+import time
 
-if collection_exists():
-    print("Коллекция уже существует, ingestion не нужен")
+done_marker = os.environ.get("INGEST_DONE_PATH", "/data/.ingest_done")
+if os.path.isfile(done_marker):
+    print("Ingestion уже выполнялся (.ingest_done), пропуск")
     sys.exit(0)
+
+for attempt in range(5):
+    if collection_has_data():
+        print("Коллекция уже заполнена, ingestion не нужен")
+        sys.exit(0)
+    if attempt < 4:
+        time.sleep(2)
 
 print(f"Коллекция пустая, ingestion в фоне: {zip_path}", flush=True)
 subprocess.Popen(

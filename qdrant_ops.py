@@ -60,6 +60,19 @@ def collection_exists() -> bool:
         return False
 
 
+def collection_has_data() -> bool:
+    """Коллекция существует и в ней есть точки."""
+    try:
+        client = _client()
+        if not client.collection_exists(config.COLLECTION_NAME):
+            return False
+        info = client.get_collection(config.COLLECTION_NAME)
+        return int(getattr(info, "points_count", 0) or 0) > 0
+    except Exception as e:
+        print(f"Проверка коллекции не удалась: {e}", flush=True)
+        return False
+
+
 def upsert_batch(
     ids: List[str],
     payloads: List[Dict[str, Any]],

@@ -12,6 +12,10 @@ class AcceptSSEMiddleware:
         self.app = app
 
     async def __call__(self, scope: dict, receive: Any, send: Any) -> None:
+        # lifespan должен дойти до Starlette/FastMCP (иначе MCP-сессии не инициализируются → 404)
+        if scope.get("type") == "lifespan":
+            await self.app(scope, receive, send)
+            return
         if scope.get("type") != "http":
             await self.app(scope, receive, send)
             return
@@ -154,8 +158,8 @@ def health_check() -> dict:
     Возвращает status и доступность коллекции.
     """
     try:
-        from qdrant_ops import collection_exists
-        qdrant_ok = collection_exists()
+        from qdrant_ops import collection_has_data
+        qdrant_ok = collection_has_data()
         return {
             "status": "ok",
             "qdrant_reachable": True,
@@ -175,15 +179,20 @@ def _run() -> None:
     transport = (config.MCP_TRANSPORT or "stdio").strip().lower()
     if transport == "http":
         import uvicorn
+        from starlette.middleware import Middleware
+
         _patch_streamable_http_accept()
-        # json_response=True: для POST нужен только Accept: application/json
-        app = mcp.http_app(path=config.MCP_PATH, json_response=True)
-        app = AcceptSSEMiddleware(app)
+        app = mcp.http_app(
+            path=config.MCP_PATH,
+            json_response=True,
+            middleware=[Middleware(AcceptSSEMiddleware)],
+        )
         uvicorn.run(
             app,
             host=config.MCP_HOST,
             port=config.MCP_PORT,
             log_level="info",
+            lifespan="on",
         )
     else:
         mcp.run()
