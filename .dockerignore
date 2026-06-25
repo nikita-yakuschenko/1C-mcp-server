@@ -8,7 +8,6 @@ __pycache__
 !README.md
 docker-compose*.yml
 Dockerfile*
-*.zip
 bsl
 *.bat
 *.ps1

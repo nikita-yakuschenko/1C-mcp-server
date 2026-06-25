@@ -13,7 +13,7 @@
    ```
 2. **Qdrant** (должен быть запущен): `docker compose up -d`
 3. **Данные** (один раз после появления ZIP):  
-   `python -m ingest "D:\1C_mcp\ОписаниеКонфигурации.zip"`
+   `python -m ingest "D:\1C_mcp\data\ОписаниеКонфигурации.zip"`
 4. **Запуск сервера** (одна команда из корня проекта):
    - **PowerShell** (из `D:\1C_mcp`): `.\run_server.ps1`
    - **CMD** или двойной щелчок: `run_server.bat` (или `.\run_server.bat`)
@@ -69,7 +69,7 @@ docker compose up -d
 
 Подключение в Cursor: URL `http://localhost:8000/mcp` (тип `streamableHttp`).
 
-Данные в Qdrant на сервере: положите `ОписаниеКонфигурации.zip` в volume `ingest_data` и перезапустите MCP (см. раздел «Деплой в Dokploy»). Локально: `python -m ingest "путь/к/zip"` при поднятом Qdrant.
+Данные в Qdrant: ZIP в репозитории (`data/ОписаниеКонфигурации.zip`), при деплое в Docker ingestion запускается автоматически при первом старте MCP. Локально: `python -m ingest "data/ОписаниеКонфигурации.zip"`.
 
 ### Деплой в Dokploy
 
@@ -97,27 +97,10 @@ docker compose up -d
    - По домену: `https://mcp.your-domain.com/mcp`  
    - Либо по IP и порту, если порт 8000 проброшен на хост: `http://<IP-сервера>:8000/mcp`
 
-6. **Ingestion на сервере (без ПК разработчика)**  
-   ZIP не в Git — один раз кладёте на сервер в volume `ingest_data` (путь в контейнере: `/data/ОписаниеКонфигурации.zip`).
-
-   **Шаг 1.** Скопировать ZIP в volume (SSH на сервер, из каталога проекта Dokploy):
-   ```bash
-   docker cp ОписаниеКонфигурации.zip $(docker compose ps -q mcp):/data/
-   ```
-   Либо смонтировать файл в Dokploy → Volumes, если UI позволяет.
-
-   **Шаг 2.** Перезапустить MCP — при старте entrypoint сам загрузит данные, если коллекции ещё нет:
-   ```bash
-   docker compose restart mcp
-   ```
-   В логах MCP: `Коллекция пустая, запуск ingestion...` (10–30 мин).
-
-   **Повторная загрузка вручную:**
-   ```bash
-   docker compose --profile ingest run --rm ingest
-   ```
-
-   Переменная `INGEST_ZIP_PATH` (по умолчанию `/data/ОписаниеКонфигурации.zip`) — путь к ZIP внутри контейнера MCP.
+6. **Ingestion**  
+   Архив `data/ОписаниеКонфигурации.zip` входит в репозиторий и копируется в Docker-образ при сборке.  
+   После деплоя при первом старте MCP entrypoint сам загрузит данные в Qdrant (10–30 мин, смотрите логи MCP).  
+   Повторная загрузка: `docker compose --profile ingest run --rm ingest`
 
 7. **Подключение в Cursor из любого места**  
    Settings → MCP → добавьте сервер типа **streamableHttp** с URL:
@@ -160,7 +143,7 @@ docker compose up -d
 Запуск загрузки (из папки проекта; .env подхватится автоматически):
 
 ```powershell
-python -m ingest "D:\1C_mcp\ОписаниеКонфигурации.zip"
+python -m ingest "D:\1C_mcp\data\ОписаниеКонфигурации.zip"
 ```
 
 Обработка граничных случаев:
@@ -196,7 +179,7 @@ python -m ingest "D:\1C_mcp\ОписаниеКонфигурации.zip"
 
 ```
 D:\1C_mcp\
-  .env             # настройки (создан по умолчанию, можно править)
+  data/            # ОписаниеКонфигурации.zip (~2 МБ), копируется в образ при сборке
   config.py        # загрузка .env и конфиг
   embedding.py     # sentence-transformers
   qdrant_ops.py    # коллекция, named vectors, поиск (single + RRF)

@@ -15,6 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY config.py embedding.py qdrant_ops.py ingest.py mcp_server.py entrypoint.sh ./
 RUN chmod +x entrypoint.sh
+COPY data/ОписаниеКонфигурации.zip /data/ОписаниеКонфигурации.zip
 
 # Порт HTTP MCP (uvicorn)
 EXPOSE 8000

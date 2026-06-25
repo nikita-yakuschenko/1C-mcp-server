@@ -26,8 +26,6 @@ services:
       - MCP_PATH=/mcp
       - EMBED_MODEL=${EMBED_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
       - INGEST_ZIP_PATH=${INGEST_ZIP_PATH:-/data/ОписаниеКонфигурации.zip}
-    volumes:
-      - ingest_data:/data:ro
     depends_on:
       - qdrant
     restart: unless-stopped
@@ -58,8 +56,6 @@ services:
       - QDRANT_URL=http://qdrant:6333
       - COLLECTION_NAME=${COLLECTION_NAME:-1c_upp_docs}
       - EMBED_MODEL=${EMBED_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
-    volumes:
-      - ingest_data:/data:ro
     depends_on:
       - qdrant
     restart: "no"
@@ -71,4 +67,3 @@ networks:
 
 volumes:
   qdrant_storage:
-  ingest_data:
