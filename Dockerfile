@@ -13,7 +13,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY config.py embedding.py qdrant_ops.py mcp_server.py ./
+COPY config.py embedding.py qdrant_ops.py ingest.py mcp_server.py entrypoint.sh ./
+RUN chmod +x entrypoint.sh
 
 # Порт HTTP MCP (uvicorn)
 EXPOSE 8000
@@ -24,4 +25,4 @@ ENV MCP_TRANSPORT=http \
     MCP_PORT=8000 \
     MCP_PATH=/mcp
 
-CMD ["python", "mcp_server.py"]
+ENTRYPOINT ["./entrypoint.sh"]

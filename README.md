@@ -69,10 +69,7 @@ docker compose up -d
 
 Подключение в Cursor: URL `http://localhost:8000/mcp` (тип `streamableHttp`).
 
-Данные в Qdrant нужно один раз загрузить (ingestion). Варианты:
-
-- Запустить ingestion на хосте (при поднятом только Qdrant): `python -m ingest "путь/к/ОписаниеКонфигурации.zip"` (в .env указан `QDRANT_URL=http://localhost:6333`).
-- Либо временно пробросить порт Qdrant и с другой машины выполнить ingestion, указав `QDRANT_URL=http://<IP-сервера>:6333`.
+Данные в Qdrant на сервере: положите `ОписаниеКонфигурации.zip` в volume `ingest_data` и перезапустите MCP (см. раздел «Деплой в Dokploy»). Локально: `python -m ingest "путь/к/zip"` при поднятом Qdrant.
 
 ### Деплой в Dokploy
 
@@ -100,13 +97,27 @@ docker compose up -d
    - По домену: `https://mcp.your-domain.com/mcp`  
    - Либо по IP и порту, если порт 8000 проброшен на хост: `http://<IP-сервера>:8000/mcp`
 
-6. **Ingestion после деплоя**  
-   Коллекция в Qdrant изначально пустая. Варианты:
+6. **Ingestion на сервере (без ПК разработчика)**  
+   ZIP не в Git — один раз кладёте на сервер в volume `ingest_data` (путь в контейнере: `/data/ОписаниеКонфигурации.zip`).
 
-   - **С хоста (рекомендуется):** установите Python и зависимости, выполните один раз:  
-     `python -m ingest "путь/к/ОписаниеКонфигурации.zip"`  
-     В `.env` укажите `QDRANT_URL=https://your-qdrant-domain.com` или `http://<IP>:6333`, если Qdrant выложен наружу.
-   - **Временный доступ к Qdrant:** в `docker-compose.yml` у сервиса `qdrant` оставьте проброс портов `6333:6333`; с машины, с которой виден сервер, выполните ingestion с `QDRANT_URL=http://<IP>:6333`, затем при необходимости порт можно убрать.
+   **Шаг 1.** Скопировать ZIP в volume (SSH на сервер, из каталога проекта Dokploy):
+   ```bash
+   docker cp ОписаниеКонфигурации.zip $(docker compose ps -q mcp):/data/
+   ```
+   Либо смонтировать файл в Dokploy → Volumes, если UI позволяет.
+
+   **Шаг 2.** Перезапустить MCP — при старте entrypoint сам загрузит данные, если коллекции ещё нет:
+   ```bash
+   docker compose restart mcp
+   ```
+   В логах MCP: `Коллекция пустая, запуск ingestion...` (10–30 мин).
+
+   **Повторная загрузка вручную:**
+   ```bash
+   docker compose --profile ingest run --rm ingest
+   ```
+
+   Переменная `INGEST_ZIP_PATH` (по умолчанию `/data/ОписаниеКонфигурации.zip`) — путь к ZIP внутри контейнера MCP.
 
 7. **Подключение в Cursor из любого места**  
    Settings → MCP → добавьте сервер типа **streamableHttp** с URL:
