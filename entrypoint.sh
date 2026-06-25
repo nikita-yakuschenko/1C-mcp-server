@@ -39,8 +39,12 @@ if collection_exists():
     print("Коллекция уже существует, ingestion не нужен")
     sys.exit(0)
 
-print(f"Коллекция пустая, запуск ingestion: {zip_path}")
-subprocess.check_call([sys.executable, "-m", "ingest", zip_path])
+print(f"Коллекция пустая, ingestion в фоне: {zip_path}", flush=True)
+subprocess.Popen(
+    [sys.executable, "-m", "ingest", zip_path],
+    stdout=None,
+    stderr=None,
+)
 PY
 }
 

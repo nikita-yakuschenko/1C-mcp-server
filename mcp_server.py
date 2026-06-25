@@ -34,12 +34,29 @@ class AcceptSSEMiddleware:
             })
             await send({"type": "http.response.body", "body": body})
             return
-        # Подставляем Accept: для POST — application/json, для GET (SSE) — text/event-stream
+        # Подставляем Accept для MCP (Traefik/прокси могут съесть исходный заголовок)
         new_headers = [(k, v) for k, v in headers_list if k.lower() != b"accept"]
-        accept_value = b"application/json" if method == "POST" else b"text/event-stream"
+        if method == "POST":
+            accept_value = b"application/json"
+        else:
+            accept_value = b"application/json, text/event-stream"
         new_headers.append((b"Accept", accept_value))
         new_scope = {**scope, "headers": new_headers}
         await self.app(new_scope, receive, send)
+
+
+def _patch_streamable_http_accept() -> None:
+    """Отключаем жёсткую проверку Accept (ломается за Traefik и Cursor)."""
+    from mcp.server.streamable_http import StreamableHTTPServerTransport
+
+    def _check_accept_headers(_self: Any, _request: Any) -> tuple[bool, bool]:
+        return True, True
+
+    async def _validate_accept_header(_self: Any, _request: Any, _scope: Any, _send: Any) -> bool:
+        return True
+
+    StreamableHTTPServerTransport._check_accept_headers = _check_accept_headers
+    StreamableHTTPServerTransport._validate_accept_header = _validate_accept_header
 
 
 from qdrant_ops import (
@@ -158,11 +175,7 @@ def _run() -> None:
     transport = (config.MCP_TRANSPORT or "stdio").strip().lower()
     if transport == "http":
         import uvicorn
-        # Обход 406: Cursor/клиент может не слать нужный Accept; патчим проверку в MCP
-        from mcp.server.streamable_http import StreamableHTTPServerTransport
-        async def _accept_any(_self: Any, request: Any, scope: Any, send: Any) -> bool:
-            return True
-        StreamableHTTPServerTransport._validate_accept_header = _accept_any
+        _patch_streamable_http_accept()
         # json_response=True: для POST нужен только Accept: application/json
         app = mcp.http_app(path=config.MCP_PATH, json_response=True)
         app = AcceptSSEMiddleware(app)
