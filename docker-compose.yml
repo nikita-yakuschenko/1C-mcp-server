@@ -28,20 +28,28 @@ services:
     depends_on:
       - qdrant
     restart: unless-stopped
-    # Раскомментируйте для Dokploy (Traefik): замените your-domain.com на свой домен
-    # labels:
-    #   - "traefik.enable=true"
-    #   - "traefik.http.routers.1c-upp-mcp.rule=Host(`mcp.your-domain.com`)"
-    #   - "traefik.http.routers.1c-upp-mcp.entrypoints=websecure"
-    #   - "traefik.http.routers.1c-upp-mcp.tls.certResolver=letsencrypt"
-    #   - "traefik.http.services.1c-upp-mcp.loadbalancer.server.port=8000"
-    # networks:
-    #   - default
-    #   - dokploy-network
+    # Traefik (Dokploy): порт 8000 — MCP слушает на 8000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
+      - "traefik.http.routers.upp-mcp-pinigp-37-web.rule=Host(`mcp.module.team`)"
+      - "traefik.http.routers.upp-mcp-pinigp-37-web.entrypoints=web"
+      - "traefik.http.routers.upp-mcp-pinigp-37-web.middlewares=redirect-to-https@file"
+      - "traefik.http.routers.upp-mcp-pinigp-37-web.service=upp-mcp-pinigp-37-web"
+      - "traefik.http.services.upp-mcp-pinigp-37-web.loadbalancer.server.port=8000"
+      - "traefik.http.routers.upp-mcp-pinigp-37-websecure.rule=Host(`mcp.module.team`)"
+      - "traefik.http.routers.upp-mcp-pinigp-37-websecure.entrypoints=websecure"
+      - "traefik.http.routers.upp-mcp-pinigp-37-websecure.service=upp-mcp-pinigp-37-websecure"
+      - "traefik.http.routers.upp-mcp-pinigp-37-websecure.tls.certresolver=letsencrypt"
+      - "traefik.http.services.upp-mcp-pinigp-37-websecure.loadbalancer.server.port=8000"
+    networks:
+      - default
+      - dokploy-network
 
-# networks:
-#   dokploy-network:
-#     external: true
+# Сеть dokploy-network создаётся Dokploy; для локального запуска закомментируйте labels и networks выше
+networks:
+  dokploy-network:
+    external: true
 
 volumes:
   qdrant_storage:
